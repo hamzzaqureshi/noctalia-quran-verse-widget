@@ -1,0 +1,14 @@
+id = "hamzzaqureshi/quran-verse"
+name = "Quran Verse"
+version = "1.0.0"
+plugin_api = 24
+author = "Hamza Qureshi"
+icon = "book"
+license = "MIT"
+dependencies = []
+tags = ["desktop", "religion", "utility", "islam"]
+description = "Daily Quran verse desktop widget with English Hilali-Khan translation and random verse exploration for Noctalia."
+
+[[desktop_widget]]
+id = "quran-verse"
+entry = "main.luau"
