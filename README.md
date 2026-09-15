@@ -1,10 +1,10 @@
-# 📖 Noctalia Quran Verse Widget
+# Noctalia Quran Verse Widget
 
 <div align="center">
 
 ![Quran Verse Desktop Widget](assets/preview.png)
 
-A modern, elegant desktop widget for [Noctalia](https://github.com/noctalia-dev/noctalia) displaying daily Quran verses with the authoritative **English Hilali-Khan** translation, Arabic text, and one-click random verse exploration.
+A desktop widget for [Noctalia](https://github.com/noctalia-dev/noctalia) displaying daily Quran verses with the authoritative **English Hilali-Khan** translation, Arabic text, and random verse exploration.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Noctalia API](https://img.shields.io/badge/Noctalia%20API-v24-purple.svg)](https://github.com/noctalia-dev/noctalia)
@@ -15,26 +15,26 @@ A modern, elegant desktop widget for [Noctalia](https://github.com/noctalia-dev/
 
 ---
 
-## ✨ Features
+## Features
 
-- **📖 Pure English Hilali-Khan Translation** — Clear, authentic, and scholarly English translation from Muhammad Taqi-ud-Din al-Hilali and Muhammad Muhsin Khan.
-- **📅 Deterministic Daily Ayah** — Automatically syncs each day across all **6,236** verses of the Holy Quran, with automatic midnight day turnover detection.
-- **🎲 Random Verse Discovery** — Click the random refresh button at any time to explore verses across all 114 Surahs, with an instant **"Back to Today"** button to return.
-- **⚡ Dual-Engine API Resilience** — Queries **Quran.com v4 API** (Resource ID 203) as the primary provider with automatic fallback to **QuranEnc API**.
-- **📋 Rich Quick Actions**:
+- **Pure English Hilali-Khan Translation**: Clear, authentic, and scholarly English translation from Muhammad Taqi-ud-Din al-Hilali and Muhammad Muhsin Khan.
+- **Deterministic Daily Ayah**: Automatically syncs each day across all **6,236** verses of the Holy Quran, with automatic midnight day turnover detection.
+- **Random Verse Discovery**: Explore verses across all 114 Surahs at any time, with an instant "Back to Today" button to return.
+- **Dual-Engine API Resilience**: Queries **Quran.com v4 API** (Resource ID 203) as the primary provider with automatic fallback to **QuranEnc API**.
+- **Quick Actions**:
   - **Copy Verse**: Copies clean verse text directly to clipboard.
   - **Copy Share Citation**: Formats a quote block with Surah name, chapter:verse reference, translation author, and Quran.com link.
   - **Copy Link**: Copies the direct Quran.com verse URL.
   - **Random Verse**: Rolls a random verse from any of the 114 Surahs.
   - **Open in Browser**: Launches the verse directly in your default browser.
-- **🎨 Native Noctalia Styling** — Built using Noctalia's native design system tokens (`surface_variant`, `primary`, `on_surface`), perfectly matching your desktop theme.
-- **📜 Overflow-Proof Layout** — Fixed 420×260 dimensions with internal smooth-scrolling for long verses, ensuring zero desktop layout shift.
-- **🔋 Battery & Resource Optimized** — Dynamic update intervals (30s idle sleep gate, 1s tick during transient badge animations) for practically 0% CPU consumption.
-- **💾 Offline & Cold-Start Caching** — Persists current verses locally to `verse.json` for immediate instant loading on boot without network lag.
+- **Native Noctalia Styling**: Built using Noctalia's native design system tokens (`surface_variant`, `primary`, `on_surface`), matching your desktop theme.
+- **Overflow-Proof Layout**: Fixed 420x260 dimensions with internal smooth-scrolling for long verses, ensuring zero desktop layout shift.
+- **Battery & Resource Optimized**: Dynamic update intervals (30s idle sleep gate, 1s tick during transient badge animations) for minimal CPU consumption.
+- **Offline & Cold-Start Caching**: Persists current verses locally to `verse.json` for immediate loading on boot without network lag.
 
 ---
 
-## 🛠️ Installation
+## Installation
 
 ### Method 1: Clone into Custom Plugins (Recommended)
 
@@ -67,7 +67,7 @@ noctalia reload
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 noctalia-quran-verse/
@@ -84,7 +84,7 @@ noctalia-quran-verse/
 
 ---
 
-## ⚙️ How It Works
+## How It Works
 
 ### Deterministic Daily Sequence
 The daily verse index is calculated deterministically from the current calendar year and day of the year (`%Y-%j`):
@@ -97,14 +97,14 @@ This is mapped across the exact verse counts of all 114 Surahs to provide a smoo
 
 ---
 
-## 🤝 Acknowledgements & Data Sources
+## Acknowledgements & Data Sources
 
-- [Quran.com API](https://quran.com) — Noble Quran content & API v4.
-- [QuranEnc](https://quranenc.com) — Authentic Quran translations encyclopedia.
-- [Noctalia](https://github.com/noctalia-dev/noctalia) — The modern desktop shell and widget ecosystem.
+- [Quran.com API](https://quran.com) - Noble Quran content and API v4.
+- [QuranEnc](https://quranenc.com) - Authentic Quran translations encyclopedia.
+- [Noctalia](https://github.com/noctalia-dev/noctalia) - The modern desktop shell and widget ecosystem.
 
 ---
 
-## 📄 License
+## License
 
-This project is licensed under the [MIT License](LICENSE) © 2026 [Hamza Qureshi](https://github.com/hamzzaqureshi).
+This project is licensed under the [MIT License](LICENSE) (c) 2026 [Hamza Qureshi](https://github.com/hamzzaqureshi).

@@ -170,7 +170,7 @@ local lastFetchClock = nil       -- os.time() of last successful or initiated fe
 local lastPollClock = nil        -- os.time() of last poll
 local lastErrorTime = nil        -- os.time() of last error for backoff
 local errorKind = nil            -- "network"|"http429"|"http503"|"http"|"json"|"invalid"|"start"
-local notice = nil               -- temporary status banner (e.g. "✓ Verse copied")
+local notice = nil               -- temporary status banner (e.g. "Verse copied")
 local noticeUntil = nil          -- os.time() when notice expires
 local manualPending = false      -- true when manual refresh was triggered
 local dataFile = nil
@@ -278,7 +278,7 @@ function copyVerseAction()
         return
     end
     if noctalia.copyToClipboard(tostring(verse.text), "text/plain") then
-        setNotice("✓ Verse copied")
+        setNotice("Verse copied")
         render()
     end
 end
@@ -298,7 +298,7 @@ function copyShareAction()
     end
 
     if noctalia.copyToClipboard(shareText, "text/plain") then
-        setNotice("✓ Share text copied")
+        setNotice("Share text copied")
         render()
     end
 end
@@ -308,7 +308,7 @@ function copyUrlAction()
         return
     end
     if noctalia.copyToClipboard(tostring(verse.url), "text/plain") then
-        setNotice("✓ Link copied")
+        setNotice("Link copied")
         render()
     end
 end
@@ -325,7 +325,7 @@ function showTodayVerseAction()
     if todayVerse ~= nil then
         verse = todayVerse
         isRandomMode = false
-        setNotice("✓ Today's verse")
+        setNotice("Today's verse")
         render()
     else
         isRandomMode = false
@@ -391,7 +391,7 @@ local function applyVerseSuccess(surah, ayah, surahName, transText, arabicText, 
 
     if isRandom then
         isRandomMode = true
-        setNotice("✓ Random verse")
+        setNotice("Random verse")
     else
         isRandomMode = false
         todayVerse = v
@@ -641,7 +641,7 @@ render = function()
     elseif loading then
         rightStatus = "Refreshing…"
     elseif errorKind ~= nil then
-        rightStatus = "⚠ " .. (errorText(errorKind) or "") .. " · cached"
+        rightStatus = (errorText(errorKind) or "") .. " · cached"
     end
 
     if rightStatus ~= nil then
