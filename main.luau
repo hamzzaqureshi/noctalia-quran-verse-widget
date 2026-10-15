@@ -377,6 +377,14 @@ render = function()
         })
     end
 
+    local surahTitle = "DAILY QURAN VERSE"
+    local verseNumbers = nil
+    if verse ~= nil then
+        local rawSurah = tostring(verse.surah or ""):gsub("^[Ss][Uu][Rr][Aa][Hh]%s+", "")
+        surahTitle = "SURAH " .. string.upper(rawSurah)
+        verseNumbers = string.format("%d:%d", verse.surahNumber or 1, verse.number or 1)
+    end
+
     desktopWidget.render(
         ui.column(
             {
@@ -391,15 +399,20 @@ render = function()
             },
             {
                 ui.row(
-                    { gap = 8, align = "center", justify = "space_between" },
+                    { gap = 10, align = "center", justify = "space_between" },
                     {
                         ui.row({ gap = 10, align = "center", flexGrow = 1 }, {
                             ui.glyph({ name = "book", size = 22, color = "primary" }),
-                            ui.label({ text = "QURAN VERSE", fontSize = 18, fontWeight = "bold", color = "primary" }),
+                            ui.label({
+                                text = surahTitle,
+                                fontSize = 18,
+                                fontWeight = "bold",
+                                color = "primary",
+                            }),
                         }),
-                        verse and ui.label({
-                            text = string.format("%s %d:%d", verse.surah or "", verse.surahNumber or 1, verse.number or 1),
-                            fontSize = 13,
+                        verseNumbers and ui.label({
+                            text = verseNumbers,
+                            fontSize = 15,
                             fontWeight = "bold",
                             color = "on_surface_variant",
                         }),
