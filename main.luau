@@ -10,7 +10,7 @@ local USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) Noctalia-Quran-Verse-Widget/
 
 local TOTAL_QURAN_VERSES = 6236
 local FETCH_DEBOUNCE = 30
-local REFRESH_COOLDOWN = 3
+local REFRESH_COOLDOWN = 1
 local ERROR_RETRY_AFTER = 90
 local NOTICE_SECONDS = 2
 local WIDTH, HEIGHT = 420, 260
@@ -81,7 +81,12 @@ local noticeUntil = nil
 local manualPending = false
 local dataFile = nil
 
+-- Instant Refresh Prefetch Pool
+local prefetchPool = {}
+local isPrefetching = false
+
 local render -- forward declaration
+local refillPrefetchPool -- forward declaration
 
 local function todayKey()
     return os.date("%Y-%j")
@@ -179,8 +184,21 @@ function copyUrlAction()
     end
 end
 
+-- Instant 0ms refresh handler: consumes pre-fetched verse if available
 function manualRefreshAction()
     clearNotice()
+    if #prefetchPool > 0 then
+        local nextVerse = table.remove(prefetchPool, 1)
+        verse = nextVerse
+        isRandomMode = true
+        errorKind = nil
+        lastFetchClock = os.time()
+        setNotice("Random verse")
+        render()
+        refillPrefetchPool()
+        return
+    end
+
     lastPollClock = nil
     manualPending = true
     update()
@@ -214,16 +232,8 @@ local function pickRandomVerse(curSurah, curAyah)
     return surah, ayah
 end
 
-local function applyVerseSuccess(surah, ayah, surahName, transText, url, isRandom, key)
-    local v = {
-        surah = surahName,
-        surahNumber = surah,
-        number = ayah,
-        text = cleanTranslation(transText),
-        author = "Hilali-Khan",
-        url = url,
-    }
-    verse = v
+local function applyVerseSuccess(verseData, isRandom, key)
+    verse = verseData
     errorKind = nil
     lastErrorTime = nil
     lastFetchClock = os.time()
@@ -233,7 +243,7 @@ local function applyVerseSuccess(surah, ayah, surahName, transText, url, isRando
         setNotice("Random verse")
     else
         isRandomMode = false
-        todayVerse = v
+        todayVerse = verseData
         cachedDay = key
         saveVerse(key)
     end
@@ -248,42 +258,37 @@ local function httpGet(url, callback)
     }, callback)
 end
 
-local function fetchVerse(surah, ayah, isRandom, key)
-    if loading then return end
+-- Unified fetch abstraction with Quran.com v4 + QuranEnc fallback
+local function fetchVerseData(surah, ayah, callback)
     local surahName = SURAH_NAMES[surah] or ("Surah " .. tostring(surah))
-    loading = true
-    render()
-
     local browseUrl = string.format("https://quran.com/%d:%d", surah, ayah)
 
     local function tryQuranEncFallback()
         local encUrl = string.format("%s/%d/%d", QURANENC_API, surah, ayah)
         local started = httpGet(encUrl, function(res)
-            loading = false
             if not res.ok or res.status < 200 or res.status >= 300 then
-                local st = tonumber(res.status) or 0
-                errorKind = (st == 429 and "http429") or (st == 503 and "http503") or (st == 0 and "network") or "http"
-                lastErrorTime = os.time()
-                render()
+                callback(nil, res.status)
                 return
             end
 
             local decoded = noctalia.json.decode(res.body)
             if decoded == nil or decoded.result == nil or decoded.result.translation == nil then
-                errorKind = "invalid"
-                lastErrorTime = os.time()
-                render()
+                callback(nil, "invalid")
                 return
             end
 
-            applyVerseSuccess(surah, ayah, surahName, decoded.result.translation, browseUrl, isRandom, key)
+            callback({
+                surah = surahName,
+                surahNumber = surah,
+                number = ayah,
+                text = cleanTranslation(decoded.result.translation),
+                author = "Hilali-Khan",
+                url = browseUrl,
+            }, nil)
         end)
 
         if not started then
-            loading = false
-            errorKind = "start"
-            lastErrorTime = os.time()
-            render()
+            callback(nil, "start")
         end
     end
 
@@ -299,8 +304,14 @@ local function fetchVerse(surah, ayah, isRandom, key)
                         break
                     end
                 end
-                loading = false
-                applyVerseSuccess(surah, ayah, surahName, transText, browseUrl, isRandom, key)
+                callback({
+                    surah = surahName,
+                    surahNumber = surah,
+                    number = ayah,
+                    text = cleanTranslation(transText),
+                    author = "Hilali-Khan",
+                    url = browseUrl,
+                }, nil)
                 return
             end
         end
@@ -310,6 +321,41 @@ local function fetchVerse(surah, ayah, isRandom, key)
     if not started then
         tryQuranEncFallback()
     end
+end
+
+-- Asynchronously keeps 2 random verses in memory for instantaneous (0ms) clicks
+refillPrefetchPool = function()
+    if isPrefetching or #prefetchPool >= 2 then return end
+    isPrefetching = true
+    local randSurah, randAyah = pickRandomVerse(verse and verse.surahNumber, verse and verse.number)
+    fetchVerseData(randSurah, randAyah, function(verseData, err)
+        isPrefetching = false
+        if verseData ~= nil then
+            table.insert(prefetchPool, verseData)
+            if #prefetchPool < 2 then
+                refillPrefetchPool()
+            end
+        end
+    end)
+end
+
+local function fetchVerse(surah, ayah, isRandom, key)
+    if loading then return end
+    loading = true
+    render()
+
+    fetchVerseData(surah, ayah, function(verseData, err)
+        loading = false
+        if verseData ~= nil then
+            applyVerseSuccess(verseData, isRandom, key)
+            refillPrefetchPool()
+        else
+            local st = tonumber(err) or 0
+            errorKind = (st == 429 and "http429") or (st == 503 and "http503") or (st == 0 and "network") or tostring(err or "http")
+            lastErrorTime = os.time()
+            render()
+        end
+    end)
 end
 
 local function fetchDailyVerse(key)
@@ -489,6 +535,7 @@ function update()
     local cacheValid = (todayVerse ~= nil or (verse ~= nil and not isRandomMode)) and (cachedDay == key)
 
     if cacheValid and not manualPending and not isRandomMode then
+        refillPrefetchPool()
         render()
         return
     end
@@ -513,6 +560,7 @@ function update()
         isRandomMode = false
         fetchDailyVerse(key)
     else
+        refillPrefetchPool()
         render()
     end
 end
