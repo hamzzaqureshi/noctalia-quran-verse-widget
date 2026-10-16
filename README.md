@@ -111,7 +111,7 @@ If you prefer configuring Noctalia manually:
    author = "hamzzaqureshi"
    license = "MIT"
    icon = "book"
-   description = "Daily Quran verse desktop widget with English Hilali-Khan translation."
+   description = "Daily Quran verse desktop widget with English Hilali-Khan translation and random verse exploration for Noctalia."
    plugin_api = 24
    tags = ["desktop", "language", "time", "utility"]
    ```
@@ -168,8 +168,6 @@ noctalia-quran-verse-widget/
 ├── main.luau              # Primary widget logic and reactive UI implementation
 ├── plugin.toml            # Noctalia plugin manifest
 ├── thumbnail.webp         # Official 960x540 catalog presentation card
-├── translations/
-│   └── en.json            # English localization strings
 └── uninstall.sh           # Clean removal and unregistration script
 ```
 

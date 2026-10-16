@@ -72,7 +72,6 @@ local todayVerse = nil
 local isRandomMode = false
 local loading = false
 local cachedDay = nil
-local savedAtClock = nil
 local lastFetchClock = nil
 local lastPollClock = nil
 local lastErrorTime = nil
@@ -119,7 +118,7 @@ local function saveVerse(key)
     if dir ~= nil and noctalia.mkdirAll ~= nil then
         noctalia.mkdirAll(dir)
     end
-    local encoded = noctalia.json.encode({ day = key, savedAt = savedAtClock, verse = verse })
+    local encoded = noctalia.json.encode({ day = key, verse = verse })
     if encoded ~= nil then
         noctalia.writeFile(dataFile, encoded)
     end
@@ -134,7 +133,6 @@ local function loadCachedVerse()
 
     verse = decoded.verse
     cachedDay = decoded.day
-    savedAtClock = tonumber(decoded.savedAt)
     if cachedDay == todayKey() then
         todayVerse = decoded.verse
         isRandomMode = false
@@ -162,7 +160,7 @@ end
 
 function copyShareAction()
     if verse == nil then return end
-    local ref = string.format("%s %s:%s · %s", verse.surah or "", tostring(verse.surahNumber or ""), tostring(verse.number or ""), verse.author or "Hilali-Khan")
+    local ref = string.format("%s %d:%d · %s", verse.surah or "", verse.surahNumber or 1, verse.number or 1, verse.author or "Hilali-Khan")
     local share = string.format("“%s”\n%s", verse.text or "", ref)
     if verse.url and tostring(verse.url) ~= "" then
         share = share .. "\n" .. tostring(verse.url)
@@ -216,13 +214,12 @@ local function pickRandomVerse(curSurah, curAyah)
     return surah, ayah
 end
 
-local function applyVerseSuccess(surah, ayah, surahName, transText, arabicText, url, isRandom, key)
+local function applyVerseSuccess(surah, ayah, surahName, transText, url, isRandom, key)
     local v = {
         surah = surahName,
         surahNumber = surah,
         number = ayah,
         text = cleanTranslation(transText),
-        arabic = tostring(arabicText or ""),
         author = "Hilali-Khan",
         url = url,
     }
@@ -238,7 +235,6 @@ local function applyVerseSuccess(surah, ayah, surahName, transText, arabicText, 
         isRandomMode = false
         todayVerse = v
         cachedDay = key
-        savedAtClock = os.time()
         saveVerse(key)
     end
     render()
@@ -280,7 +276,7 @@ local function fetchVerse(surah, ayah, isRandom, key)
                 return
             end
 
-            applyVerseSuccess(surah, ayah, surahName, decoded.result.translation, decoded.result.arabic_text or "", browseUrl, isRandom, key)
+            applyVerseSuccess(surah, ayah, surahName, decoded.result.translation, browseUrl, isRandom, key)
         end)
 
         if not started then
@@ -291,7 +287,7 @@ local function fetchVerse(surah, ayah, isRandom, key)
         end
     end
 
-    local primaryUrl = string.format("%s/%d:%d?translations=203&fields=text_uthmani", QURAN_COM_API, surah, ayah)
+    local primaryUrl = string.format("%s/%d:%d?translations=203", QURAN_COM_API, surah, ayah)
     local started = httpGet(primaryUrl, function(res)
         if res.ok and res.status >= 200 and res.status < 300 then
             local decoded = noctalia.json.decode(res.body)
@@ -304,7 +300,7 @@ local function fetchVerse(surah, ayah, isRandom, key)
                     end
                 end
                 loading = false
-                applyVerseSuccess(surah, ayah, surahName, transText, decoded.verse.text_uthmani or "", browseUrl, isRandom, key)
+                applyVerseSuccess(surah, ayah, surahName, transText, browseUrl, isRandom, key)
                 return
             end
         end
@@ -316,7 +312,7 @@ local function fetchVerse(surah, ayah, isRandom, key)
     end
 end
 
-function fetchDailyVerse(key)
+local function fetchDailyVerse(key)
     local surah, ayah = verseForDate(key)
     fetchVerse(surah, ayah, false, key)
 end
@@ -372,7 +368,7 @@ render = function()
     else
         bodyContent = ui.column({ onClick = "copyVerseAction", flexGrow = 1, width = 384, align = "stretch" }, {
             ui.scroll({ flexGrow = 1, align = "stretch" }, {
-                ui.markdown({ text = "**“" .. verse.text .. "”**", width = 368 }),
+                ui.markdown({ text = "**“" .. (verse.text or "") .. "”**", width = 368 }),
             }),
         })
     end
@@ -380,8 +376,7 @@ render = function()
     local surahTitle = "DAILY QURAN VERSE"
     local verseNumbers = nil
     if verse ~= nil then
-        local rawSurah = tostring(verse.surah or ""):gsub("^[Ss][Uu][Rr][Aa][Hh]%s+", "")
-        surahTitle = "SURAH " .. string.upper(rawSurah)
+        surahTitle = "SURAH " .. string.upper(verse.surah or "")
         verseNumbers = string.format("%d:%d", verse.surahNumber or 1, verse.number or 1)
     end
 
