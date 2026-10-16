@@ -66,8 +66,7 @@ Interactive controls available on the widget interface:
 | **Verse Body** | Click text area | Copies the plain English translation to clipboard |
 | **Copy Icon** | Click | Copies the plain English translation to clipboard |
 | **Share Icon** | Click | Copies formatted quotation with Surah name, Ayah reference, and translation credit |
-| **Link Icon** | Click | Copies direct `https://quran.com/SURAH:AYAH` URL |
-| **Refresh Icon** | Click | Fetches a random verse across all 114 Surahs |
+| **Refresh Icon** | Click | Fetches a random verse across all 114 Surahs (instant 0ms switch) |
 | **Back to Today** | Click | Exits random mode and restores today's scheduled verse |
 | **Open Button** | Click | Launches the verse directly in your default browser via `xdg-open` |
 

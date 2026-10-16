@@ -114,6 +114,10 @@ local function cleanTranslation(text)
     if text == nil then return "" end
     local s = tostring(text):gsub("<sup[^>]*>.-</sup>", ""):gsub("<[^>]+>", "")
     s = s:gsub("^%d+%.%s*", ""):gsub("%s+", " ")
+    s = s:gsub("^%s+", ""):gsub("%s+$", "")
+    -- Strip existing surrounding quotes to prevent double-quote artifacts
+    s = s:gsub('^["\'“”]+', ""):gsub('["\'“”]+$', "")
+    s = s:gsub('["\'“”]%.$', ".")
     return s:gsub("^%s+", ""):gsub("%s+$", "")
 end
 
@@ -157,7 +161,7 @@ end
 -- Global Action Handlers (invoked by UI callbacks)
 function copyVerseAction()
     if verse == nil or verse.text == nil or tostring(verse.text) == "" then return end
-    if noctalia.copyToClipboard(tostring(verse.text), "text/plain") then
+    if noctalia.copyToClipboard(cleanTranslation(verse.text), "text/plain") then
         setNotice("Verse copied")
         render()
     end
@@ -165,21 +169,14 @@ end
 
 function copyShareAction()
     if verse == nil then return end
+    local clean = cleanTranslation(verse.text)
     local ref = string.format("%s %d:%d · %s", verse.surah or "", verse.surahNumber or 1, verse.number or 1, verse.author or "Hilali-Khan")
-    local share = string.format("“%s”\n%s", verse.text or "", ref)
+    local share = string.format("“%s”\n%s", clean, ref)
     if verse.url and tostring(verse.url) ~= "" then
         share = share .. "\n" .. tostring(verse.url)
     end
     if noctalia.copyToClipboard(share, "text/plain") then
         setNotice("Share citation copied")
-        render()
-    end
-end
-
-function copyUrlAction()
-    if verse == nil or verse.url == nil or tostring(verse.url) == "" then return end
-    if noctalia.copyToClipboard(tostring(verse.url), "text/plain") then
-        setNotice("Link copied")
         render()
     end
 end
@@ -377,34 +374,6 @@ local function makeButton(glyph, tip, fn)
 end
 
 render = function()
-    local statusChildren = {
-        ui.label({
-            text = isRandomMode and "English · Hilali-Khan · Random" or "English · Hilali-Khan",
-            fontSize = 11,
-            color = "on_surface_variant",
-        }),
-    }
-
-    local rightStatus = notice or (loading and "Refreshing…") or (errorKind and ((ERROR_TEXTS[errorKind] or "Error") .. " · cached"))
-    local rightStatusColor = notice and "primary" or "on_surface_variant"
-
-    if rightStatus ~= nil then
-        table.insert(statusChildren, ui.label({
-            text = rightStatus,
-            fontSize = 11,
-            color = rightStatusColor,
-            flexGrow = 1,
-            textAlign = "end",
-        }))
-    elseif isRandomMode then
-        table.insert(statusChildren, ui.button({
-            text = "Back to Today",
-            variant = "ghost",
-            controlSize = "xs",
-            onClick = "showTodayVerseAction",
-        }))
-    end
-
     local bodyContent
     if verse == nil then
         local msg = loading and "Loading verse…" or (errorKind and ("Unable to load: " .. (ERROR_TEXTS[errorKind] or "unknown error")) or "Daily Quran verse")
@@ -412,9 +381,10 @@ render = function()
             ui.label({ text = msg, fontSize = 15, color = "on_surface", maxWidth = 370 }),
         })
     else
+        local cleanText = cleanTranslation(verse.text)
         bodyContent = ui.column({ onClick = "copyVerseAction", flexGrow = 1, width = 384, align = "stretch" }, {
             ui.scroll({ flexGrow = 1, align = "stretch" }, {
-                ui.markdown({ text = "**“" .. (verse.text or "") .. "”**", width = 368 }),
+                ui.markdown({ text = "**“" .. cleanText .. "”**", width = 368 }),
             }),
         })
     end
@@ -424,6 +394,42 @@ render = function()
     if verse ~= nil then
         surahTitle = "SURAH " .. string.upper(verse.surah or "")
         verseNumbers = string.format("%d:%d", verse.surahNumber or 1, verse.number or 1)
+    end
+
+    -- Consolidated single-row footer: status/attribution on the left, essential actions on the right
+    local leftFooter
+    if notice ~= nil then
+        leftFooter = ui.label({
+            text = notice,
+            fontSize = 11,
+            fontWeight = "bold",
+            color = "primary",
+        })
+    elseif loading then
+        leftFooter = ui.label({
+            text = "Refreshing…",
+            fontSize = 11,
+            color = "primary",
+        })
+    elseif errorKind ~= nil then
+        leftFooter = ui.label({
+            text = (ERROR_TEXTS[errorKind] or "Error") .. " · cached",
+            fontSize = 11,
+            color = "on_surface_variant",
+        })
+    elseif isRandomMode then
+        leftFooter = ui.button({
+            text = "Back to Today",
+            variant = "ghost",
+            controlSize = "xs",
+            onClick = "showTodayVerseAction",
+        })
+    else
+        leftFooter = ui.label({
+            text = "English · Hilali-Khan",
+            fontSize = 11,
+            color = "on_surface_variant",
+        })
     end
 
     desktopWidget.render(
@@ -439,6 +445,7 @@ render = function()
                 align = "stretch",
             },
             {
+                -- Header Row: Book Icon + SURAH <NAME> on left, citation on right
                 ui.row(
                     { gap = 10, align = "center", justify = "space_between" },
                     {
@@ -462,26 +469,21 @@ render = function()
 
                 ui.separator({ thickness = 1, color = "outline", spacing = 2 }),
 
+                -- Verse Content (Expanded scroll container)
                 bodyContent,
-
-                ui.row({ gap = 6, align = "center", justify = "space_between" }, statusChildren),
 
                 ui.separator({ thickness = 1, color = "outline", spacing = 2 }),
 
+                -- Consolidated Single Footer Row: No double rows, no redundant chain link
                 ui.row(
                     { align = "center", justify = "space_between" },
                     {
-                        ui.label({
-                            text = isRandomMode and "Random Verse" or "Daily Verse",
-                            fontSize = 12,
-                            color = "on_surface_variant",
-                        }),
+                        leftFooter,
                         ui.row(
                             { gap = 4, align = "center" },
                             {
                                 makeButton("copy", "Copy verse text", "copyVerseAction"),
                                 makeButton("share", "Copy share citation", "copyShareAction"),
-                                makeButton("link", "Copy Quran.com link", "copyUrlAction"),
                                 makeButton("refresh", "Random verse", "manualRefreshAction"),
                                 ui.button({ text = "Open", variant = "secondary", controlSize = "sm", onClick = "openVerse", tooltip = "Open on Quran.com" }),
                             }
