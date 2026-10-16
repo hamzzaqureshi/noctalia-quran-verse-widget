@@ -17,3 +17,5 @@ desktop.ini
 *~
 *.log
 .cache/
+.court/
+.arena/

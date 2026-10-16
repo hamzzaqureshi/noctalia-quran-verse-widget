@@ -81,6 +81,15 @@ local noticeUntil = nil
 local manualPending = false
 local dataFile = nil
 
+local DEFAULT_OFFLINE_VERSE = {
+    surah = "Al-Fatihah",
+    surahNumber = 1,
+    number = 1,
+    text = "In the Name of Allah, the Most Beneficent, the Most Merciful.",
+    author = "Hilali-Khan",
+    url = "https://quran.com/1:1",
+}
+
 -- Instant Refresh Prefetch Pool
 local prefetchPool = {}
 local isPrefetching = false
@@ -136,9 +145,21 @@ end
 local function loadCachedVerse()
     if dataFile == nil then return end
     local raw = noctalia.readFile(dataFile)
-    if raw == nil then return end
+    if raw == nil then
+        if verse == nil then
+            verse = DEFAULT_OFFLINE_VERSE
+            todayVerse = DEFAULT_OFFLINE_VERSE
+        end
+        return
+    end
     local decoded = noctalia.json.decode(raw)
-    if decoded == nil or decoded.verse == nil then return end
+    if decoded == nil or decoded.verse == nil then
+        if verse == nil then
+            verse = DEFAULT_OFFLINE_VERSE
+            todayVerse = DEFAULT_OFFLINE_VERSE
+        end
+        return
+    end
 
     verse = decoded.verse
     cachedDay = decoded.day
@@ -402,6 +423,14 @@ render = function()
             fontWeight = "bold",
             color = "primary",
         })
+    elseif isRandomMode then
+        leftFooter = ui.button({
+            text = loading and "Refreshing…" or "Back to Today",
+            variant = "ghost",
+            controlSize = "sm",
+            onClick = "showTodayVerseAction",
+            tooltip = "Return to daily verse",
+        })
     elseif loading then
         leftFooter = ui.label({
             text = "Refreshing…",
@@ -413,20 +442,6 @@ render = function()
             text = (ERROR_TEXTS[errorKind] or "Error") .. " · cached",
             fontSize = 11,
             color = "on_surface_variant",
-        })
-    elseif isRandomMode then
-        leftFooter = ui.row({ gap = 8, align = "center" }, {
-            ui.button({
-                text = "Back to Today",
-                variant = "ghost",
-                controlSize = "xs",
-                onClick = "showTodayVerseAction",
-            }),
-            ui.label({
-                text = "Hilali-Khan",
-                fontSize = 11,
-                color = "on_surface_variant",
-            }),
         })
     else
         leftFooter = ui.label({
