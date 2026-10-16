@@ -20,6 +20,7 @@
   - [Quickstart](#quickstart-automatic-installation)
   - [Manual Installation](#manual-installation)
 - [Technical Architecture](#technical-architecture)
+  - [Prefetch Pool & Caching Flow](#prefetch-pool--caching-flow)
   - [Directory Structure](#directory-structure)
 - [Validation and Testing](#validation-and-testing)
 - [Uninstallation](#uninstallation)
@@ -31,7 +32,7 @@
 
 Noctalia Quran Verse Widget is a native desktop widget for the Noctalia Wayland shell. It provides an uninterrupted spiritual anchor on Linux desktops by presenting a daily verse from the Quran paired with the authoritative English translation by Muhammad Taqi-ud-Din al-Hilali and Muhammad Muhsin Khan.
 
-The widget renders inside a fixed 420x260 card, updates smoothly at midnight, retains full offline capability through local state caching, and provides instant clipboard formatting for research and sharing.
+The widget renders inside a fixed 420x260 card, updates smoothly at midnight, retains full offline capability through local state caching and bundled fallbacks, and provides instant clipboard formatting for research and sharing.
 
 ![Noctalia Quran Verse Desktop Widget Preview](assets/preview.png)
 
@@ -39,13 +40,15 @@ The widget renders inside a fixed 420x260 card, updates smoothly at midnight, re
 
 ## Key Features
 
-- **Authoritative Translation**: Exclusively presents the scholarly Hilali-Khan translation sourced directly from Quran.com API (resource ID 203) with automatic fallback to QuranEnc.
+- **Authoritative Translation**: Exclusively presents the scholarly Hilali-Khan translation sourced directly from Quran.com API (resource ID 203) with automatic secondary failover to QuranEnc.
 - **Deterministic Calendar Sequence**: Maps every day of the calendar year to a distinct ayah across all 6,236 verses of the Quran, ensuring synchronized daily reading.
-- **Random Exploration Mode**: Discover any verse across all 114 Surahs with a single click, featuring a persistent "Back to Today" action to restore the daily sequence.
-- **Offline Resilience**: Writes today's retrieved verse to a local cache (`verse.json`). Launches instantly on system startup without waiting for network connectivity.
-- **Fixed Layout Preservation**: Contains a responsive Luau scroll view that preserves the widget's geometric boundary (420x260 px) even when displaying longer verses.
-- **One-Click Share Citations**: Export clean plain text, formatted quote citations (`"..." Surah Al-Baqarah 2:255 · Hilali-Khan`), or direct web references to the system clipboard.
-- **Resource Efficient**: Operates on a dynamic event loop (30-second idle polling, 1-second transient banner decay) to maintain near-zero CPU and memory footprint.
+- **Instant Random Exploration**: Explore any verse across all 114 Surahs with 0ms perceived latency powered by a background prefetch pool, featuring a persistent "Back to Today" button to restore the daily sequence.
+- **Offline-First Resilience**: Writes retrieved verses to local storage (`verse.json`) and bundles an in-memory seed verse (Surah Al-Fatihah 1:1) to guarantee immediate display even on fresh, offline cold starts.
+- **BiDi-Safe Typography**: Sanitizes surrounding quotes, footnote superscripts, and parenthetical Arabic honorific calligraphy (`صلى الله عليه وسلم`) to ensure bidirectional rendering stability.
+- **Fixed Layout Preservation**: Contains a responsive Luau scroll view that preserves the widget boundary (420x260 px) when displaying long passages like Ayat al-Dayn (2:282).
+- **Consolidated Single-Row Footer**: Status attribution and dedicated controls share a clean, uncollided single horizontal row with zero layout clipping.
+- **One-Click Share Citations**: Export clean plain text, formatted quote citations (`"..." Surah Sad 38:88 · Hilali-Khan`), or direct web references to the system clipboard.
+- **Resource Efficient**: Operates on a dynamic event loop (30-second idle polling, 1.5-second transient banner decay) maintaining near-zero CPU and memory usage.
 
 ---
 
@@ -66,8 +69,8 @@ Interactive controls available on the widget interface:
 | **Verse Body** | Click text area | Copies the plain English translation to clipboard |
 | **Copy Icon** | Click | Copies the plain English translation to clipboard |
 | **Share Icon** | Click | Copies formatted quotation with Surah name, Ayah reference, and translation credit |
-| **Refresh Icon** | Click | Fetches a random verse across all 114 Surahs (instant 0ms switch) |
-| **Back to Today** | Click | Exits random mode and restores today's scheduled verse |
+| **Refresh Icon** | Click | Switches instantly to a random verse across all 114 Surahs (0ms response) |
+| **Back to Today** | Click | Exits random mode and immediately restores today's scheduled verse |
 | **Open Button** | Click | Launches the verse directly in your default browser via `xdg-open` |
 
 ---
@@ -141,16 +144,24 @@ The widget executes inside Noctalia's sandboxed Luau runtime. Network queries ex
 flowchart TD
     A[Widget Initialization] --> B{Cache Exists for Today?}
     B -- Yes --> C[Load verse.json Instant Render]
-    B -- No --> D[Calculate Day Index 1-6236]
-    D --> E[Query Quran.com API v4]
-    E -- 200 OK --> F[Parse Hilali-Khan Translation]
-    E -- Failure / Timeout --> G[Query QuranEnc API Fallback]
-    G -- 200 OK --> F
-    G -- Failure --> H[Display Cached / Error State]
-    F --> I[Write to verse.json]
-    I --> J[Render Widget Interface]
-    J --> K[Set Update Interval 30s]
+    B -- No --> D{Offline Cold Start?}
+    D -- Yes --> E[Seed DEFAULT_OFFLINE_VERSE 1:1]
+    D -- No --> F[Calculate Day Index 1-6236]
+    F --> G[Query Quran.com API v4]
+    G -- 200 OK --> H[Parse Hilali-Khan Translation]
+    G -- Failure / Timeout --> I[Query QuranEnc API Fallback]
+    I -- 200 OK --> H
+    I -- Failure --> J[Display Cached / Offline Seed]
+    H --> K[Write to verse.json]
+    K --> L[Render Consolidated UI]
+    L --> M[Refill 2-Slot Prefetch Pool]
 ```
+
+### Prefetch Pool & Caching Flow
+
+1. **Background Prefetch**: An in-memory queue maintains up to 2 pre-fetched random verses. Clicking the refresh icon consumes the queue immediately for a 0ms transition, then asynchronously refills the pool.
+2. **Offline Fallback**: If network is disconnected on first run, the widget initializes with Surah Al-Fatihah 1:1, avoiding empty states or error crashes.
+3. **Collision-Proof Geometry**: The footer row distributes available width deterministically, ensuring that action buttons and status strings never overlap.
 
 ### Directory Structure
 
@@ -161,11 +172,13 @@ noctalia-quran-verse-widget/
 ├── LICENSE                # MIT License
 ├── README.md              # Project documentation
 ├── assets/
-│   ├── desktop.png        # Full-screen desktop context screenshot
-│   └── preview.png        # Cropped high-resolution widget interface preview
+│   ├── desktop.png        # Full-screen desktop context screenshot (1920x1080)
+│   └── preview.png        # Cropped high-resolution widget interface preview (740x480)
 ├── install.sh             # One-step automated installer
 ├── main.luau              # Primary widget logic and reactive UI implementation
 ├── plugin.toml            # Noctalia plugin manifest
+├── tests/
+│   └── test_edge_cases.lua # Edge case unit test suite
 ├── thumbnail.webp         # Official 960x540 catalog presentation card
 └── uninstall.sh           # Clean removal and unregistration script
 ```
@@ -187,6 +200,24 @@ hamzzaqureshi/quran-verse
   ok
 
 0 errors, 0 warnings
+```
+
+To run the offline translation and typography unit tests:
+
+```bash
+lua tests/test_edge_cases.lua
+```
+
+Expected output:
+
+```text
+Test 1: Normal translation
+  Pass: In the Name of Allah, the Most Beneficent, the Most Merciful.
+Test 2: Surah Al-Mu'minun 23:72 with Arabic calligraphy
+  Pass: Length 181 chars
+Test 3: Footnotes and tags
+  Pass: Some verse texttest.
+All edge case unit tests PASSED
 ```
 
 ---
