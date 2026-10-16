@@ -12,7 +12,7 @@ local TOTAL_QURAN_VERSES = 6236
 local FETCH_DEBOUNCE = 30
 local REFRESH_COOLDOWN = 1
 local ERROR_RETRY_AFTER = 90
-local NOTICE_SECONDS = 2
+local NOTICE_SECONDS = 1.5
 local WIDTH, HEIGHT = 420, 260
 
 math.randomseed(os.time())
@@ -190,7 +190,6 @@ function manualRefreshAction()
         isRandomMode = true
         errorKind = nil
         lastFetchClock = os.time()
-        setNotice("Random verse")
         render()
         refillPrefetchPool()
         return
@@ -206,7 +205,6 @@ function showTodayVerseAction()
     if todayVerse ~= nil then
         verse = todayVerse
         isRandomMode = false
-        setNotice("Today's verse")
         render()
     else
         isRandomMode = false
@@ -237,7 +235,6 @@ local function applyVerseSuccess(verseData, isRandom, key)
 
     if isRandom then
         isRandomMode = true
-        setNotice("Random verse")
     else
         isRandomMode = false
         todayVerse = verseData
@@ -418,11 +415,18 @@ render = function()
             color = "on_surface_variant",
         })
     elseif isRandomMode then
-        leftFooter = ui.button({
-            text = "Back to Today",
-            variant = "ghost",
-            controlSize = "xs",
-            onClick = "showTodayVerseAction",
+        leftFooter = ui.row({ gap = 8, align = "center" }, {
+            ui.button({
+                text = "Back to Today",
+                variant = "ghost",
+                controlSize = "xs",
+                onClick = "showTodayVerseAction",
+            }),
+            ui.label({
+                text = "Hilali-Khan",
+                fontSize = 11,
+                color = "on_surface_variant",
+            }),
         })
     else
         leftFooter = ui.label({
