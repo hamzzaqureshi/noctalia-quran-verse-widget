@@ -179,20 +179,33 @@ local function clearNotice()
     noticeUntil = nil
 end
 
+local function formatVerseCitation(v)
+    if v == nil then return "" end
+    local surahName = tostring(v.surah or "")
+    if not surahName:match("^Surah%s+") and not surahName:match("^SURAH%s+") then
+        surahName = "Surah " .. surahName
+    end
+    return string.format("%s %d:%d", surahName, v.surahNumber or 1, v.number or 1)
+end
+
 -- Global Action Handlers (invoked by UI callbacks)
 function copyVerseAction()
     if verse == nil or verse.text == nil or tostring(verse.text) == "" then return end
-    if noctalia.copyToClipboard(cleanTranslation(verse.text), "text/plain") then
-        setNotice("Verse copied")
+    local clean = cleanTranslation(verse.text)
+    local citation = formatVerseCitation(verse)
+    local formatted = string.format("“%s”\n— %s", clean, citation)
+    if noctalia.copyToClipboard(formatted, "text/plain") then
+        setNotice("Verse & citation copied")
         render()
     end
 end
 
 function copyShareAction()
-    if verse == nil then return end
+    if verse == nil or verse.text == nil then return end
     local clean = cleanTranslation(verse.text)
-    local ref = string.format("%s %d:%d · %s", verse.surah or "", verse.surahNumber or 1, verse.number or 1, verse.author or "Hilali-Khan")
-    local share = string.format("“%s”\n%s", clean, ref)
+    local citation = formatVerseCitation(verse)
+    local author = verse.author or "Hilali-Khan"
+    local share = string.format("“%s”\n— %s (%s)", clean, citation, author)
     if verse.url and tostring(verse.url) ~= "" then
         share = share .. "\n" .. tostring(verse.url)
     end
@@ -501,8 +514,8 @@ render = function()
                         ui.row(
                             { gap = 4, align = "center" },
                             {
-                                makeButton("copy", "Copy verse text", "copyVerseAction"),
-                                makeButton("share", "Copy share citation", "copyShareAction"),
+                                makeButton("copy", "Copy verse and citation", "copyVerseAction"),
+                                makeButton("share", "Copy share citation with link", "copyShareAction"),
                                 makeButton("refresh", "Random verse", "manualRefreshAction"),
                                 ui.button({ text = "Open", variant = "secondary", controlSize = "sm", onClick = "openVerse", tooltip = "Open on Quran.com" }),
                             }

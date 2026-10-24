@@ -66,9 +66,9 @@ Interactive controls available on the widget interface:
 
 | Control | Action | Target / Result |
 | :--- | :--- | :--- |
-| **Verse Body** | Click text area | Copies the plain English translation to clipboard |
-| **Copy Icon** | Click | Copies the plain English translation to clipboard |
-| **Share Icon** | Click | Copies formatted quotation with Surah name, Ayah reference, and translation credit |
+| **Verse Body** | Click text area | Copies verse quotation with Surah name and Ayah reference |
+| **Copy Icon** | Click | Copies verse quotation with Surah name and Ayah reference |
+| **Share Icon** | Click | Copies formatted quotation with Surah name, Ayah reference, translation credit, and web link |
 | **Refresh Icon** | Click | Switches instantly to a random verse across all 114 Surahs (0ms response) |
 | **Back to Today** | Click | Exits random mode and immediately restores today's scheduled verse |
 | **Open Button** | Click | Launches the verse directly in your default browser via `xdg-open` |
