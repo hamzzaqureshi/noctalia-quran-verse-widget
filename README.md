@@ -32,7 +32,7 @@
 
 Noctalia Quran Verse Widget is a native desktop widget for the Noctalia Wayland shell. It provides an uninterrupted spiritual anchor on Linux desktops by presenting a daily verse from the Quran paired with the authoritative English translation by Muhammad Taqi-ud-Din al-Hilali and Muhammad Muhsin Khan.
 
-The widget renders inside an adaptive, fully resizable card (default 420x260), updates smoothly at midnight, retains full offline capability through local state caching and bundled fallbacks, and provides instant clipboard formatting for research and sharing.
+The widget renders inside a fixed 420x260 card, updates smoothly at midnight, retains full offline capability through local state caching and bundled fallbacks, and provides instant clipboard formatting for research and sharing.
 
 ![Noctalia Quran Verse Desktop Widget Preview](assets/preview.png)
 
@@ -45,7 +45,7 @@ The widget renders inside an adaptive, fully resizable card (default 420x260), u
 - **Instant Random Exploration**: Explore any verse across all 114 Surahs with 0ms perceived latency powered by a background prefetch pool, featuring a persistent "Back to Today" button to restore the daily sequence.
 - **Offline-First Resilience**: Writes retrieved verses to local storage (`verse.json`) and bundles an in-memory seed verse (Surah Al-Fatihah 1:1) to guarantee immediate display even on fresh, offline cold starts.
 - **BiDi-Safe Typography**: Sanitizes surrounding quotes, footnote superscripts, and parenthetical Arabic honorific calligraphy (`صلى الله عليه وسلم`) to ensure bidirectional rendering stability.
-- **Dynamic & Resizable Layout**: Automatically queries Noctalia's desktop widget dimensions to adaptively stretch across any customized width and height, preserving internal proportions and scroll containment for long passages like Ayat al-Dayn (2:282).
+- **Fixed Layout Preservation**: Contains a responsive Luau scroll view that preserves the widget boundary (420x260 px) when displaying long passages like Ayat al-Dayn (2:282).
 - **Consolidated Single-Row Footer**: Status attribution and dedicated controls share a clean, uncollided single horizontal row with zero layout clipping.
 - **One-Click Share Citations**: Export clean plain text, formatted quote citations (`"..." Surah Sad 38:88 · Hilali-Khan`), or direct web references to the system clipboard.
 - **Resource Efficient**: Operates on a dynamic event loop (30-second idle polling, 1.5-second transient banner decay) maintaining near-zero CPU and memory usage.
