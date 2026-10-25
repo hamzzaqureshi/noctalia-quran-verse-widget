@@ -13,7 +13,24 @@ local FETCH_DEBOUNCE = 30
 local REFRESH_COOLDOWN = 1
 local ERROR_RETRY_AFTER = 90
 local NOTICE_SECONDS = 1.5
-local WIDTH, HEIGHT = 420, 260
+local DEFAULT_WIDTH, DEFAULT_HEIGHT = 420, 260
+local currentWidth, currentHeight = DEFAULT_WIDTH, DEFAULT_HEIGHT
+
+local function getWidgetDimensions()
+    local dw = noctalia.getSetting("desktop_widgets")
+    if dw and dw.widget then
+        for _, w in pairs(dw.widget) do
+            if w.type == "hamzzaqureshi/quran-verse:quran-verse" then
+                local bw = tonumber(w.box_width)
+                local bh = tonumber(w.box_height)
+                if bw and bh and bw >= 240 and bh >= 140 then
+                    return math.floor(bw), math.floor(bh)
+                end
+            end
+        end
+    end
+    return DEFAULT_WIDTH, DEFAULT_HEIGHT
+end
 
 math.randomseed(os.time())
 
@@ -405,17 +422,22 @@ local function makeButton(glyph, tip, fn)
 end
 
 render = function()
+    local curW, curH = getWidgetDimensions()
+    currentWidth, currentHeight = curW, curH
+    local innerW = math.max(200, curW - 28)
+    local textW = math.max(180, curW - 48)
+
     local bodyContent
     if verse == nil then
         local msg = loading and "Loading verse…" or (errorKind and ("Unable to load: " .. (ERROR_TEXTS[errorKind] or "unknown error")) or "Daily Quran verse")
-        bodyContent = ui.column({ flexGrow = 1, justify = "center", align = "center" }, {
-            ui.label({ text = msg, fontSize = 15, color = "on_surface", maxWidth = 370 }),
+        bodyContent = ui.column({ flexGrow = 1, justify = "center", align = "center", width = innerW }, {
+            ui.label({ text = msg, fontSize = 15, color = "on_surface", maxWidth = textW }),
         })
     else
         local cleanText = cleanTranslation(verse.text)
-        bodyContent = ui.column({ onClick = "copyVerseAction", flexGrow = 1, width = 384, align = "stretch" }, {
+        bodyContent = ui.column({ onClick = "copyVerseAction", flexGrow = 1, width = innerW, align = "stretch" }, {
             ui.scroll({ flexGrow = 1, align = "stretch" }, {
-                ui.markdown({ text = "**“" .. cleanText .. "”**", width = 368 }),
+                ui.markdown({ text = "**“" .. cleanText .. "”**", width = textW }),
             }),
         })
     end
@@ -467,8 +489,8 @@ render = function()
     desktopWidget.render(
         ui.column(
             {
-                width = WIDTH,
-                height = HEIGHT,
+                width = curW,
+                height = curH,
                 gap = 6,
                 padding = 14,
                 fill = "surface_variant/0.82",
@@ -527,10 +549,20 @@ render = function()
     )
 end
 
-desktopWidget.setWantsSecondTicks(true)
+function onConfigChanged()
+    local curW, curH = getWidgetDimensions()
+    if curW ~= currentWidth or curH ~= currentHeight then
+        render()
+    end
+end
 
 function update()
     local now = os.time()
+
+    local curW, curH = getWidgetDimensions()
+    if curW ~= currentWidth or curH ~= currentHeight then
+        render()
+    end
 
     if notice ~= nil then
         noctalia.setUpdateInterval(1000)
